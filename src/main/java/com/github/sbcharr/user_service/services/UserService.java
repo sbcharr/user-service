@@ -1,5 +1,6 @@
 package com.github.sbcharr.user_service.services;
 
+import com.github.sbcharr.user_service.exceptions.UserAlreadyExistsException;
 import com.github.sbcharr.user_service.models.Token;
 import com.github.sbcharr.user_service.models.User;
 import com.github.sbcharr.user_service.repositories.UserRepository;
@@ -23,8 +24,7 @@ public class UserService implements IUserService {
     public User signup(String name, String email, String password) {
         Optional<User> existingUser = userRepository.findByEmail(email);
         if (existingUser.isPresent()) {
-            // redirect to the login page
-            return existingUser.get();
+            throw new UserAlreadyExistsException("Email already registered");
         }
         User user = new User();
         user.setName(name);

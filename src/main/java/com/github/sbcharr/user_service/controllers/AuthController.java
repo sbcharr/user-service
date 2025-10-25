@@ -4,28 +4,30 @@ import com.github.sbcharr.user_service.dtos.SignupRequestDto;
 import com.github.sbcharr.user_service.dtos.UserDto;
 import com.github.sbcharr.user_service.models.User;
 import com.github.sbcharr.user_service.services.UserService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/users")
-public class UserController {
+@RequestMapping("/api/v1/auth")
+public class AuthController {
     private UserService userService;
 
-    public UserController(UserService userService) {
+    public AuthController(UserService userService) {
         this.userService = userService;
     }
 
     @PostMapping("/signup")
-    public UserDto signUp(@RequestBody SignupRequestDto requestDto) {
+    public ResponseEntity<UserDto> signUp(@RequestBody SignupRequestDto requestDto) {
         User user = userService.signup(
                 requestDto.getName(),
                 requestDto.getEmail(),
                 requestDto.getPassword()
         );
-        return null;
+        UserDto userDto = UserDto.from(user);
+        return ResponseEntity.ok(userDto);
     }
 //
 //    @PostMapping("/login")
