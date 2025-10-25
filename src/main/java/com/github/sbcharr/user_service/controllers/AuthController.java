@@ -1,14 +1,14 @@
 package com.github.sbcharr.user_service.controllers;
 
+import com.github.sbcharr.user_service.dtos.LoginRequestDto;
 import com.github.sbcharr.user_service.dtos.SignupRequestDto;
+import com.github.sbcharr.user_service.dtos.TokenDto;
 import com.github.sbcharr.user_service.dtos.UserDto;
+import com.github.sbcharr.user_service.models.Token;
 import com.github.sbcharr.user_service.models.User;
 import com.github.sbcharr.user_service.services.UserService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -26,20 +26,27 @@ public class AuthController {
                 requestDto.getEmail(),
                 requestDto.getPassword()
         );
-        UserDto userDto = UserDto.from(user);
-        return ResponseEntity.ok(userDto);
+
+        return ResponseEntity.ok(UserDto.from(user));
     }
-//
-//    @PostMapping("/login")
-//    public TokenDto login(@RequestBody LoginRequestDto requestDto) {
-//        return null;
-//    }
-//
-//    @GetMapping("/validate/{token}")
-//    public UserDto validateToken(@PathVariable("token") String token) {
-//        return null;
-//    }
-//
+
+    @PostMapping("/login")
+    public ResponseEntity<TokenDto> login(@RequestBody LoginRequestDto requestDto) {
+        Token token = userService.login(
+                requestDto.getEmail(),
+                requestDto.getPassword()
+        );
+
+        return ResponseEntity.ok(TokenDto.from(token));
+    }
+
+    @GetMapping("/validate/{token}")
+    public ResponseEntity<UserDto> validateToken(@PathVariable("token") String token) {
+        User user = userService.validateToken(token);
+
+        return ResponseEntity.ok(UserDto.from(user));
+    }
+
 //    @PutMapping("/logout")
 //    public boolean logOut() {
 //        return false;
