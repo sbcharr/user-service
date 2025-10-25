@@ -1,0 +1,71 @@
+name: Test
+
+on:
+  workflow_run:
+    workflows: ["Build"]   # Runs only after Build.yml completes
+    types:
+      - completed
+    branches:
+      - main
+
+jobs:
+  test:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: testdb
+          MYSQL_USER: test
+          MYSQL_PASSWORD: test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -ptest"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    env:
+      SPRING_PROFILES_ACTIVE: unit
+      MYSQL_USER: test
+      MYSQL_PASSWORD: test
+      MYSQL_DB: testuserdb
+      MYSQL_PORT: 3306
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Wait for MySQL to be ready
+        run: |
+          until mysql -h 127.0.0.1 -P 3306 -u$MYSQL_USER -p$MYSQL_PASSWORD -e "SELECT 1"; do
+            echo "Waiting for MySQL..."
+            sleep 5
+          done
+
+      - name: Create database and grant permissions
+        run: |
+          mysql -h 127.0.0.1 -P 3306 -uroot -proot -e "CREATE DATABASE IF NOT EXISTS $MYSQL_DB;"
+          mysql -h 127.0.0.1 -P 3306 -uroot -proot -e "GRANT ALL PRIVILEGES ON $MYSQL_DB.* TO '$MYSQL_USER'@'%';"
+          mysql -h 127.0.0.1 -P 3306 -uroot -proot -e "FLUSH PRIVILEGES;"
+
+      - name: Run unit tests
+        run: make test
+
+      - name: Run integration tests
+        run: make it
+
+      - name: Success message
+        if: success()
+        run: echo "All tests passed!"
