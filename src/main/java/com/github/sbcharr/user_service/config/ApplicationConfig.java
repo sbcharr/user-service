@@ -1,5 +1,6 @@
 package com.github.sbcharr.user_service.config;
 
+import org.springframework.beans.factory.BeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -8,6 +9,12 @@ import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 public class ApplicationConfig {
+    private final BeanFactory beanFactory;
+
+    public ApplicationConfig(BeanFactory beanFactory) {
+        this.beanFactory = beanFactory;
+    }
+
     @Bean
     public BCryptPasswordEncoder getPasswordEncoder() {
         return new BCryptPasswordEncoder();
