@@ -1,6 +1,7 @@
 package com.github.sbcharr.user_service.advices;
 
 import com.github.sbcharr.user_service.dtos.ApiErrorResponse;
+import com.github.sbcharr.user_service.exceptions.InvalidCredentialsException;
 import com.github.sbcharr.user_service.exceptions.InvalidTokenException;
 import com.github.sbcharr.user_service.exceptions.PasswordMismatchException;
 import com.github.sbcharr.user_service.exceptions.UserAlreadyExistsException;
@@ -38,4 +39,10 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, request);
     }
 
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ApiErrorResponse> handleInvalidCredentials(InvalidCredentialsException ex,
+                                                                     WebRequest request) {
+
+        return buildErrorResponse(ex, HttpStatus.UNAUTHORIZED, request);
+    }
 }

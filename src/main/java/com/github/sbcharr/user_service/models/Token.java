@@ -17,5 +17,5 @@ public class Token extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     private User user;
     //@Enumerated(EnumType.STRING)
-    private TokenStatus tokenStatus;
+//    private TokenStatus tokenStatus;
 }

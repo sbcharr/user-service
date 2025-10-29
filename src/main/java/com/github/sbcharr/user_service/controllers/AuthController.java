@@ -1,9 +1,6 @@
 package com.github.sbcharr.user_service.controllers;
 
-import com.github.sbcharr.user_service.dtos.LoginRequestDto;
-import com.github.sbcharr.user_service.dtos.SignupRequestDto;
-import com.github.sbcharr.user_service.dtos.TokenDto;
-import com.github.sbcharr.user_service.dtos.UserDto;
+import com.github.sbcharr.user_service.dtos.*;
 import com.github.sbcharr.user_service.models.Token;
 import com.github.sbcharr.user_service.models.User;
 import com.github.sbcharr.user_service.services.UserService;
@@ -31,13 +28,13 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<TokenDto> login(@RequestBody LoginRequestDto requestDto) {
+    public ResponseEntity<LoginResponseDto> login(@RequestBody LoginRequestDto requestDto) {
         Token token = userService.login(
                 requestDto.getEmail(),
                 requestDto.getPassword()
         );
 
-        return ResponseEntity.ok(TokenDto.from(token));
+        return ResponseEntity.ok(LoginResponseDto.from(token));
     }
 
     @GetMapping("/validate/{token}")

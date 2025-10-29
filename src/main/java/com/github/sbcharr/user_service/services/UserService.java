@@ -1,39 +1,48 @@
+
 package com.github.sbcharr.user_service.services;
 
+import com.github.sbcharr.user_service.exceptions.InvalidCredentialsException;
 import com.github.sbcharr.user_service.exceptions.InvalidTokenException;
-import com.github.sbcharr.user_service.exceptions.PasswordMismatchException;
 import com.github.sbcharr.user_service.exceptions.UserAlreadyExistsException;
 import com.github.sbcharr.user_service.models.Token;
 import com.github.sbcharr.user_service.models.User;
 import com.github.sbcharr.user_service.repositories.TokenRepository;
 import com.github.sbcharr.user_service.repositories.UserRepository;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.SignatureException;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
+import javax.crypto.SecretKey;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
+import java.util.Date;
 import java.util.Optional;
 
 @Slf4j
 @Service
 public class UserService implements IUserService {
-    private final TokenRepository tokenRepository;
-    UserRepository userRepository;
-    BCryptPasswordEncoder bCryptPasswordEncoder;
+    private TokenRepository tokenRepository;
+    private UserRepository userRepository;
+    private BCryptPasswordEncoder bCryptPasswordEncoder;
+    private SecretKey secretKey;
 
     public UserService(UserRepository userRepository,
-                       BCryptPasswordEncoder bCryptPasswordEncoder, TokenRepository tokenRepository) {
+                       BCryptPasswordEncoder bCryptPasswordEncoder, TokenRepository tokenRepository,
+                       SecretKey secretKey) {
         this.userRepository = userRepository;
         this.bCryptPasswordEncoder = bCryptPasswordEncoder;
         this.tokenRepository = tokenRepository;
+        this.secretKey = secretKey;
     }
 
     @Override
     public User signup(String name, String email, String password) {
+        // Check if user with email already exists
         Optional<User> existingUser = userRepository.findByEmail(email);
         if (existingUser.isPresent()) {
             throw new UserAlreadyExistsException("Email already registered");
@@ -48,35 +57,52 @@ public class UserService implements IUserService {
 
     @Override
     public Token login(String email, String password) {
-        Optional<User> existingUser = userRepository.findByEmail(email);
-        if (existingUser.isPresent()) {
-            User user = existingUser.get();
-            if (bCryptPasswordEncoder.matches(password, user.getPassword())) {
-                Token token = new Token();
-                token.setUser(user);
-                String randomToken = RandomStringUtils.randomAlphanumeric(128);
-                token.setToken(randomToken);
-                System.out.println(randomToken);
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
 
-                ZonedDateTime utcNow = ZonedDateTime.now(ZoneOffset.UTC);
-                ZonedDateTime futureDate = utcNow.plusMinutes(1);
-                token.setExpiration(futureDate.toInstant());
-                return tokenRepository.save(token);
-            } else {
-                throw new PasswordMismatchException("Invalid password");
-            }
+        if (!bCryptPasswordEncoder.matches(password, user.getPassword())) {
+            throw new InvalidCredentialsException("Invalid email or password");
         }
 
-        return null;
+        ZonedDateTime utcNow = ZonedDateTime.now(ZoneOffset.UTC);
+        ZonedDateTime futureDate = utcNow.plusMinutes(30);
+
+        String jwtToken = Jwts.builder()
+                .subject(user.getEmail())
+                .issuer("sbcharr.github.com")
+                .issuedAt(Date.from(utcNow.toInstant()))
+                .expiration(Date.from(futureDate.toInstant()))
+                .claim("userId", user.getId())
+                .claim("roles", user.getRoles())
+                .signWith(secretKey)
+                .compact();
+
+        Token token = new Token();
+        token.setUser(user);
+        token.setToken(jwtToken);
+        token.setExpiration(futureDate.toInstant());
+
+        return token;
     }
 
     @Override
     public User validateToken(String token) {
-        Optional<Token> existingToken = tokenRepository.findByTokenAndExpirationAfter(token, Instant.now());
-        if (!existingToken.isPresent()) {
-            log.error("Invalid token");
+        try {
+            // parse and verify the JWT
+            Claims claims = Jwts.parser()
+                    .verifyWith(secretKey)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+
+            Long userId = claims.get("userId", Long.class);
+            return userRepository.findById(userId).orElseThrow(() -> new InvalidTokenException("Invalid token"));
+        } catch (ExpiredJwtException ex) {
+            throw new InvalidTokenException("Token has expired");
+        } catch (SignatureException ex) {
+            throw new InvalidTokenException("Invalid token signature");
+        } catch (JwtException ex) {
             throw new InvalidTokenException("Invalid token");
         }
-        return existingToken.get().getUser();
     }
 }
