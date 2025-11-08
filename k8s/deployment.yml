@@ -20,6 +20,9 @@ spec:
         - name: user
           image: ghcr.io/sbcharr/user-service:latest
           imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: user-config
           ports:
             - containerPort: 8080
           readinessProbe:
