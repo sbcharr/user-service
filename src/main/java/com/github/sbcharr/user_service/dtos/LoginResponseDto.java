@@ -25,8 +25,8 @@ public class LoginResponseDto {
         if (token == null) {
             return null;
         }
-        String accessToken = token.getToken();
-        long expiresIn = token.getExpiration().getEpochSecond() - Instant.now().getEpochSecond();
+        String accessToken = token.getValue();
+        long expiresIn = token.getExpiryAt().getEpochSecond() - Instant.now().getEpochSecond();
         User user = token.getUser();
 
         return new LoginResponseDto(accessToken, expiresIn, UserDto.from(user));

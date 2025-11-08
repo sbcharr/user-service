@@ -6,5 +6,5 @@ import lombok.Setter;
 @Setter
 @Getter
 public class LogoutRequestDto {
-    private String email;
+    private String token;
 }

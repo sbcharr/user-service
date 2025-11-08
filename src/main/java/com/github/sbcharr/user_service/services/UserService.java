@@ -41,7 +41,7 @@ public class UserService implements IUserService {
     }
 
     @Override
-    public User signup(String name, String email, String password) {
+    public User register(String name, String email, String password) {
         // Check if user with email already exists
         Optional<User> existingUser = userRepository.findByEmail(email);
         if (existingUser.isPresent()) {
@@ -50,17 +50,17 @@ public class UserService implements IUserService {
         User user = new User();
         user.setName(name);
         user.setEmail(email);
-        user.setPassword(bCryptPasswordEncoder.encode(password));
+        user.setHashedPassword(bCryptPasswordEncoder.encode(password));
 
         return userRepository.save(user);
     }
 
     @Override
     public Token login(String email, String password) {
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmailAndDeletedAtIsNull(email)
                 .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
 
-        if (!bCryptPasswordEncoder.matches(password, user.getPassword())) {
+        if (!bCryptPasswordEncoder.matches(password, user.getHashedPassword())) {
             throw new InvalidCredentialsException("Invalid email or password");
         }
 
@@ -79,14 +79,14 @@ public class UserService implements IUserService {
 
         Token token = new Token();
         token.setUser(user);
-        token.setToken(jwtToken);
-        token.setExpiration(futureDate.toInstant());
+        token.setValue(jwtToken);
+        token.setExpiryAt(futureDate.toInstant());
 
         return token;
     }
 
     @Override
-    public User validateToken(String token) {
+    public Optional<User> validateToken(String token) {
         try {
             // parse and verify the JWT
             Claims claims = Jwts.parser()
@@ -95,8 +95,12 @@ public class UserService implements IUserService {
                     .parseSignedClaims(token)
                     .getPayload();
 
-            Long userId = claims.get("userId", Long.class);
-            return userRepository.findById(userId).orElseThrow(() -> new InvalidTokenException("Invalid token"));
+            Number userIdNum = claims.get("userId", Number.class);
+            if (userIdNum == null) {
+                throw new InvalidTokenException("Token missing userId");
+            }
+            Long userId = userIdNum.longValue();
+            return userRepository.findById(userId);
         } catch (ExpiredJwtException ex) {
             throw new InvalidTokenException("Token has expired");
         } catch (SignatureException ex) {
