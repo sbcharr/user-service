@@ -25,6 +25,7 @@ public class ApplicationConfig {
         httpSecurity.csrf(csrf -> csrf.disable());
         httpSecurity.cors(cors -> cors.disable());
         httpSecurity.authorizeHttpRequests(authorize -> authorize
+                .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers("/api/v1/auth/**").permitAll()
                 .anyRequest().authenticated()
         );
