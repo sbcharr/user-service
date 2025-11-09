@@ -3,4 +3,17 @@ kind: ConfigMap
 metadata:
   name: user-config
 data:
-  SPRING_PROFILES_ACTIVE: qa
+  SPRING_PROFILES_ACTIVE: "qa"
+
+  # Override application-qa.properties
+  SPRING_DATASOURCE_URL: "jdbc:mysql://localhost:3307/user_service?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+  SPRING_DATASOURCE_USERNAME: "dev"
+  SPRING_DATASOURCE_PASSWORD: "dev"
+  SPRING_DATASOURCE_DRIVER_CLASS_NAME: "com.mysql.cj.jdbc.Driver"
+
+  SPRING_JPA_HIBERNATE_DDL_AUTO: "update"
+  SPRING_JPA_SHOW_SQL: "true"
+  SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL: "true"
+
+  SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: "10"
+  SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: "5"
