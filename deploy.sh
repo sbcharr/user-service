@@ -55,10 +55,10 @@ echo ""
 # Apply ConfigMap & Secret
 #################################
 echo "Applying environment ConfigMap..."
-kubectl apply -f "$CONFIGMAP_FILE"
+kubectl apply -f "$CONFIGMAP_FILE" -n "${NAMESPACE}"
 
 echo "Applying environment Secret..."
-kubectl apply -f "$SECRET_FILE"
+kubectl apply -f "$SECRET_FILE" -n "${NAMESPACE}"
 
 #################################
 # Apply Core Manifests
