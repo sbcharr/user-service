@@ -23,6 +23,8 @@ spec:
           envFrom:
             - configMapRef:
                 name: user-config
+            - secretRef:
+                name: mysql-secret
           ports:
             - containerPort: 8080
           readinessProbe:

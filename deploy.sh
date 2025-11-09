@@ -1,101 +1,106 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 #################################
-# CHECK ARGUMENT
+# Usage & Environment Validation
 #################################
-ENV="$1"
-
-if [[ -z "$ENV" ]]; then
-  echo "ERROR: Missing environment argument."
-  echo "Usage: ./deploy.sh <dev|qa|prod>"
-  exit 1
-fi
-
-if [[ "$ENV" != "dev" && "$ENV" != "qa" && "$ENV" != "prod" ]]; then
-  echo "ERROR: Invalid environment '$ENV'"
-  echo "Allowed: dev, qa, prod"
+ENV="${1:-}"
+ALLOWED_ENVS=("dev" "qa" "prod")
+if [[ ! " ${ALLOWED_ENVS[@]} " =~ " ${ENV} " ]]; then
+  echo "Usage: $0 <dev|qa|prod>"
   exit 1
 fi
 
 #################################
-# CONFIG
+# Config
 #################################
-NAMESPACE="default"
+NAMESPACE="user-service-${ENV}"
 DEPLOYMENT_NAME="user-service"
 CONTAINER_NAME="user"
-IMAGE="ghcr.io/${GITHUB_USER}/user-service:latest"
+IMAGE="ghcr.io/${GITHUB_USER:-CHANGEME}/user-service:latest"
 
 CONFIGMAP_FILE="k8s/configmap-${ENV}.yaml"
+SECRET_FILE="k8s/secret-${ENV}.yaml"
 
-if [[ ! -f "$CONFIGMAP_FILE" ]]; then
-  echo "ERROR: Missing ConfigMap file: $CONFIGMAP_FILE"
-  exit 1
-fi
+# Validation for ConfigMap & Secret files
+for FILE in "$CONFIGMAP_FILE" "$SECRET_FILE"; do
+  if [[ ! -f "$FILE" ]]; then
+    echo "ERROR: Missing $FILE (generate or supply before deploying)"
+    exit 1
+  fi
+done
 
-if [[ -z "$GHCR_TOKEN" ]]; then
+if [[ -z "${GHCR_TOKEN:-}" ]]; then
   echo "ERROR: GHCR_TOKEN environment variable not set."
-  echo "Set it once: export GHCR_TOKEN=<your_pat>"
+  echo "Run: export GHCR_TOKEN=<your_pat>"
   exit 1
 fi
 
+#################################
+# Display Deployment Targets
+#################################
 echo ""
-echo "Deploying to environment: $ENV"
-echo "-----------------------------------------"
+echo "Deploying to: $ENV"
+echo "--------------------------------------"
 echo "Namespace       : $NAMESPACE"
 echo "Deployment Name : $DEPLOYMENT_NAME"
 echo "Container Name  : $CONTAINER_NAME"
 echo "Image           : $IMAGE"
 echo "ConfigMap       : $CONFIGMAP_FILE"
-echo "-----------------------------------------"
+echo "Secret          : $SECRET_FILE"
+echo "--------------------------------------"
 echo ""
 
 #################################
-# APPLY CONFIGMAP
+# Apply ConfigMap & Secret
 #################################
-echo "Applying environment-specific ConfigMap: $CONFIGMAP_FILE"
+echo "Applying environment ConfigMap..."
 kubectl apply -f "$CONFIGMAP_FILE"
 
-#################################
-# APPLY COMMON K8s MANIFESTS
-#################################
-echo ""
-echo "Applying Kubernetes manifests (deployment, service, ingress)..."
-kubectl apply -f k8s/deployment.yaml
-kubectl apply -f k8s/service.yaml
-kubectl apply -f k8s/ingress.yaml
+echo "Applying environment Secret..."
+kubectl apply -f "$SECRET_FILE"
 
 #################################
-# ENSURE GHCR SECRET
+# Apply Core Manifests
 #################################
-echo ""
+echo "Applying Kubernetes manifests (deployment, service, ingress)..."
+kubectl apply -f k8s/deployment.yaml -n "${NAMESPACE}"
+kubectl apply -f k8s/service.yaml -n "${NAMESPACE}"
+kubectl apply -f k8s/ingress.yaml -n "${NAMESPACE}"
+
+#################################
+# Ensure GHCR Pull Secret
+#################################
 echo "Ensuring GHCR pull secret exists..."
 kubectl create secret docker-registry ghcr-secret \
   --docker-server=ghcr.io \
-  --docker-username=${GITHUB_USER} \
-  --docker-password=${GHCR_TOKEN} \
-  --docker-email=noemail@example.com \
-  --namespace ${NAMESPACE} \
+  --docker-username="${GITHUB_USER:-CHANGEME}" \
+  --docker-password="${GHCR_TOKEN}" \
+  --docker-email="noemail@example.com" \
+  --namespace "${NAMESPACE}" \
   --dry-run=client -o yaml | kubectl apply -f -
 
 #################################
-# UPDATE IMAGE
+# Update Deployment Image
 #################################
-echo ""
 echo "Updating deployment image..."
-kubectl -n ${NAMESPACE} set image deployment/${DEPLOYMENT_NAME} ${CONTAINER_NAME}=${IMAGE} --record
+kubectl -n "${NAMESPACE}" set image deployment/"${DEPLOYMENT_NAME}" "${CONTAINER_NAME}"="${IMAGE}" --record
 
 #################################
-# WAIT FOR ROLLOUT
+# Rollout Status & Results
 #################################
-echo ""
 echo "Waiting for rollout..."
-kubectl -n ${NAMESPACE} rollout status deployment/${DEPLOYMENT_NAME} --timeout=180s
+if ! kubectl -n "${NAMESPACE}" rollout status deployment/"${DEPLOYMENT_NAME}" --timeout=180s; then
+  echo "ERROR: Deployment rollout failed!"
+  exit 1
+fi
+
+echo ""
+echo "Deployment to '$ENV' complete! Current pods:"
+kubectl -n "${NAMESPACE}" get pods -o wide
+kubectl -n "${NAMESPACE}" get deployment "${DEPLOYMENT_NAME}" -o=jsonpath='{.spec.template.spec.containers[0].image}'; echo ""
 
 #################################
-# DONE
+# Done
 #################################
-echo ""
-echo "Deployment to '$ENV' complete!"
-echo ""
-kubectl -n ${NAMESPACE} get pods -o wide
+exit 0
