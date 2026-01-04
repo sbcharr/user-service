@@ -5,6 +5,7 @@ import com.github.sbcharr.user_service.exceptions.InvalidTokenException;
 import com.github.sbcharr.user_service.models.Token;
 import com.github.sbcharr.user_service.models.User;
 import com.github.sbcharr.user_service.services.UserServiceImpl;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,24 +47,13 @@ public class AuthController {
         return ResponseEntity.ok(LoginResponseDto.from(token));
     }
 
-    @GetMapping("/validate")
-    public ResponseEntity<UserDto> validateTokenFromHeader(@RequestHeader(name = "Authorization", required = false)
-                                                           String authorization) {
-        if (authorization == null || !authorization.startsWith("Bearer ")) {
-            return ResponseEntity.badRequest().build();
-        }
-
-        String token = authorization.substring("Bearer ".length());
-        User user = userServiceImpl.validateToken(token)
-                .orElseThrow(() -> new InvalidTokenException("Invalid token"));
-
-        return ResponseEntity.ok(UserDto.from(user));
-    }
-
     @GetMapping("/sample")
-    public ResponseEntity<Void> sampleAPI() {
-        log.info("Received a call from ProductService!");
-        return ResponseEntity.ok().build();
+    public ResponseEntity<Void> sampleAPI(HttpServletRequest request) {
+        log.info("Sample ping from: {}", request.getRemoteAddr());
+        return ResponseEntity.ok()
+                .header("X-Service-Version", "1.0.0")
+                .header("X-Service-Status", "healthy")
+                .build();
     }
 
     @PutMapping("/logout")
