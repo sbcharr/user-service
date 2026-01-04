@@ -2,7 +2,7 @@
 
 **Production-grade JWT based authentication 'user' microservice for e-commerce platform**
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # Clone & build
@@ -19,7 +19,7 @@ curl -X POST http://localhost:8080/api/v1/auth/login \
   -d '{"email":"sbcharr@shop.com","password":"secret123"}'
 ```
 
-## 🔑 API Endpoints
+## API Endpoints
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
@@ -30,14 +30,14 @@ curl -X POST http://localhost:8080/api/v1/auth/login \
 | `GET` | `/api/v1/users/profile` | JWT | Get user profile |
 | `GET` | `/api/v1/auth/sample` | None | Service health ping |
 
-## 🛡️ Security
+## Security
 
 - **JWT**: HS256, 15min expiry, Redis based blacklist
 - **Soft-delete**: `deletedAt` timestamp
 - **BCrypt**: Strength 16
 - **Roles**: `BUYER`, `MERCHANT`, `ADMIN`
 
-## 🧪 Health Checks
+## Health Checks
 
 ```bash
 /actuator/health/liveness      # K8s liveness
@@ -45,7 +45,7 @@ curl -X POST http://localhost:8080/api/v1/auth/login \
 /api/v1/auth/sample            # Service ping
 ```
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 Client → JWT Filter → UserService → Redis/DB
@@ -55,7 +55,7 @@ Validate  Claims     BCrypt       Blacklist
 
 **Features:** fast auth, stateless profile, validation-first API
 
-## 📦 Dependencies
+## Dependencies
 
 ```
 spring-boot-starter-web
