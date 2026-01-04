@@ -85,6 +85,30 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public boolean verifyEmail(String token) {
+        log.info("Verifying email with token: {}", token.substring(0, 8) + "...");
+        Optional<AuthUserDetails> authUserDetails = validateToken(token);
+        if (authUserDetails.isEmpty()) {
+            throw new InvalidTokenException("Invalid or expired token");
+        }
+
+        // single-use token: logout to blacklist
+        logout(token);
+
+        User user = userRepository.findById(authUserDetails.get().getId())
+                .orElseThrow(() -> new InvalidTokenException("User not found"));
+
+        if (user.isEmailVerified()) {
+            log.warn("Email already verified for user: {}", user.getId());
+            return false;
+        }
+        user.setEmailVerified(true);
+        userRepository.save(user);
+
+        return true;
+    }
+
+    @Override
     public Token login(String email, String password) {
         User user = userRepository.findByEmailAndDeletedAtIsNull(email)
                 .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
@@ -182,6 +206,11 @@ public class UserServiceImpl implements UserService {
             log.error("JWT parse failed: {}", e.getMessage());
             throw new InvalidTokenException("Invalid token format");
         }
+    }
+
+    @Override
+    public Optional<User> findById(Long id) {
+        return userRepository.findByIdAndDeletedAtIsNull(id);
     }
 
 }

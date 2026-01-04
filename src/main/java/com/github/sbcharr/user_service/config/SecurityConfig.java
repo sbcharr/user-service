@@ -26,6 +26,8 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health/**", "/api/v1/auth/**").permitAll()
+                        .requestMatchers("/api/v1/users/profile").authenticated()  // JWT required
+                        .requestMatchers("/api/v1/users/**").hasRole("ADMIN")     // Admin only
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

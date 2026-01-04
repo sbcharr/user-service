@@ -9,6 +9,7 @@ import com.github.sbcharr.user_service.models.User;
 import com.github.sbcharr.user_service.services.UserServiceImpl;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,24 +18,26 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 @RequestMapping("/api/v1/auth")
 public class AuthController {
-    private UserServiceImpl userServiceImpl;
+    private final UserServiceImpl userServiceImpl;
 
     public AuthController(UserServiceImpl userServiceImpl) {
         this.userServiceImpl = userServiceImpl;
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<UserDto> signUp(@RequestBody SignupRequestDto requestDto) {
-        User user = userServiceImpl.register(
-                requestDto.getName(),
-                requestDto.getEmail(),
-                requestDto.getPassword()
-        );
-
+    public ResponseEntity<UserDto> signUp(@RequestBody @Valid SignupRequestDto requestDto) {
+        User user = userServiceImpl.register(requestDto.name(), requestDto.email(), requestDto.password());
         log.info("User signed up: id={}", user.getId());
 
         return ResponseEntity.ok(UserDto.from(user));
     }
+
+    @PutMapping("/verify-email")
+    public ResponseEntity<String> verifyEmail(@RequestParam @NotBlank String token) {
+        boolean verified = userServiceImpl.verifyEmail(token);
+        return verified ? ResponseEntity.ok("Email verified successfully") : ResponseEntity.badRequest().build();
+    }
+
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponseDto> login(@RequestBody @Valid LoginRequestDto requestDto) {

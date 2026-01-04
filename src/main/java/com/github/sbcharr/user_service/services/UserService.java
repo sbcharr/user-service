@@ -9,9 +9,13 @@ import java.util.Optional;
 public interface UserService {
     User register(String name, String email, String password);
 
+    boolean verifyEmail(String token);
+
     Token login(String email, String password);
 
     Optional<AuthUserDetails> validateToken(String token);
+
+    Optional<User> findById(Long id);
 
     default boolean logout(String token) {
         // Default implementation does nothing
