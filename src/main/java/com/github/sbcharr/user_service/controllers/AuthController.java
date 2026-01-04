@@ -4,28 +4,26 @@ import com.github.sbcharr.user_service.dtos.*;
 import com.github.sbcharr.user_service.exceptions.InvalidTokenException;
 import com.github.sbcharr.user_service.models.Token;
 import com.github.sbcharr.user_service.models.User;
-import com.github.sbcharr.user_service.services.UserService;
+import com.github.sbcharr.user_service.services.UserServiceImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.net.URI;
 
 @RestController
 @RequestMapping("/api/v1/auth")
 public class AuthController {
     private static final Logger log = LoggerFactory.getLogger(AuthController.class);
 
-    private UserService userService;
+    private UserServiceImpl userServiceImpl;
 
-    public AuthController(UserService userService) {
-        this.userService = userService;
+    public AuthController(UserServiceImpl userServiceImpl) {
+        this.userServiceImpl = userServiceImpl;
     }
 
     @PostMapping("/register")
     public ResponseEntity<UserDto> signUp(@RequestBody SignupRequestDto requestDto) {
-        User user = userService.register(
+        User user = userServiceImpl.register(
                 requestDto.getName(),
                 requestDto.getEmail(),
                 requestDto.getPassword()
@@ -38,7 +36,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponseDto> login(@RequestBody LoginRequestDto requestDto) {
-        Token token = userService.login(
+        Token token = userServiceImpl.login(
                 requestDto.getEmail(),
                 requestDto.getPassword()
         );
@@ -48,13 +46,13 @@ public class AuthController {
 
     @GetMapping("/validate")
     public ResponseEntity<UserDto> validateTokenFromHeader(@RequestHeader(name = "Authorization", required = false)
-                                                               String authorization) {
+                                                           String authorization) {
         if (authorization == null || !authorization.startsWith("Bearer ")) {
             return ResponseEntity.badRequest().build();
         }
 
         String token = authorization.substring("Bearer ".length());
-        User user = userService.validateToken(token)
+        User user = userServiceImpl.validateToken(token)
                 .orElseThrow(() -> new InvalidTokenException("Invalid token"));
 
         return ResponseEntity.ok(UserDto.from(user));
@@ -71,5 +69,6 @@ public class AuthController {
 //    public boolean logOut() {
 //        return false;
 //    }
+    
 
 }

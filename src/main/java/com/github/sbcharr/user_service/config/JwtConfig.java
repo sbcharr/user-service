@@ -2,8 +2,7 @@ package com.github.sbcharr.user_service.config;
 
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,10 +10,9 @@ import org.springframework.context.annotation.Configuration;
 import javax.crypto.SecretKey;
 
 @Configuration
+@Slf4j
 public class JwtConfig {
-    private static final Logger log = LoggerFactory.getLogger(JwtConfig.class);
-
-    private String jwtSecret;
+    private final String jwtSecret;
 
     public JwtConfig(@Value("${jwt.secret}") String jwtSecret) {
         this.jwtSecret = jwtSecret;
@@ -25,13 +23,12 @@ public class JwtConfig {
         if (jwtSecret == null || jwtSecret.isBlank()) {
             throw new IllegalStateException("Property 'jwt.secret' must be set and base64-encoded");
         }
-        final byte[] keyBytes; //= Decoders.BASE64.decode(jwtSecret);
-        try {
-            keyBytes = Decoders.BASE64.decode(jwtSecret);
-        } catch (IllegalStateException ex) {
-            throw new IllegalStateException("Property 'jwt.secret' must be set and base64-encoded");
-        }
 
-        return Keys.hmacShaKeyFor(keyBytes);
+        try {
+            byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
+            return Keys.hmacShaKeyFor(keyBytes);
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalStateException("Must be base64-encoded");
+        }
     }
 }
