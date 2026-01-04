@@ -5,6 +5,7 @@ import com.github.sbcharr.user_service.exceptions.InvalidTokenException;
 import com.github.sbcharr.user_service.models.Token;
 import com.github.sbcharr.user_service.models.User;
 import com.github.sbcharr.user_service.services.UserServiceImpl;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -21,7 +22,7 @@ public class AuthController {
         this.userServiceImpl = userServiceImpl;
     }
 
-    @PostMapping("/register")
+    @PostMapping("/signup")
     public ResponseEntity<UserDto> signUp(@RequestBody SignupRequestDto requestDto) {
         User user = userServiceImpl.register(
                 requestDto.getName(),
@@ -35,12 +36,13 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponseDto> login(@RequestBody LoginRequestDto requestDto) {
+    public ResponseEntity<LoginResponseDto> login(@RequestBody @Valid LoginRequestDto requestDto) {
+        log.info("Login attempt: {}", requestDto.email());
         Token token = userServiceImpl.login(
-                requestDto.getEmail(),
-                requestDto.getPassword()
+                requestDto.email(),
+                requestDto.password()
         );
-
+        log.info("Login success: userId={}", token.getUser().getId());
         return ResponseEntity.ok(LoginResponseDto.from(token));
     }
 
@@ -64,11 +66,10 @@ public class AuthController {
         return ResponseEntity.ok().build();
     }
 
-    // TODO: Implement logout functionality
-//    @PutMapping("/logout")
-//    public boolean logOut() {
-//        return false;
-//    }
+    @PutMapping("/logout")
+    public boolean logOut() {
+        return false;
+    }
     
 
 }

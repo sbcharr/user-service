@@ -2,24 +2,18 @@ package com.github.sbcharr.user_service.dtos;
 
 import com.github.sbcharr.user_service.models.Token;
 import com.github.sbcharr.user_service.models.User;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.Setter;
 
 import java.time.Instant;
 
-@Setter
 @Getter
+@AllArgsConstructor
 public class LoginResponseDto {
-    private String accessToken;
-    private String tokenType = "Bearer";
-    private long expiresIn;
-    private UserDto user;
-
-    public LoginResponseDto(String accessToken, long expiresIn, UserDto user) {
-        this.accessToken = accessToken;
-        this.expiresIn = expiresIn;
-        this.user = user;
-    }
+    private final String accessToken;
+    private final String tokenType = "Bearer";
+    private final long expiresIn;
+    private final UserDto user;
 
     public static LoginResponseDto from(Token token) {
         if (token == null) {
